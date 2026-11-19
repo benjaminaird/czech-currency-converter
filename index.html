@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c1524" />
+  <meta name="description" content="Czech Currency Converter provides quick conversion between Czech koruna, US dollars and euros." />
+  <meta name="application-name" content="Czech Currency Converter" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Czech Currency Converter" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48x48.png" />
+  <title>Czech Currency Converter</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0c1524; color: #f2f6ff; min-height: 100svh; }
+    main { width: min(100%, 510px); margin: auto; padding: max(42px, env(safe-area-inset-top)) 22px max(28px, env(safe-area-inset-bottom)); }
+    .eyebrow { letter-spacing: .2em; text-transform: uppercase; font-size: 11px; font-weight: 750; color: #9bb6d9; }
+    .brand { display: flex; align-items: center; gap: 15px; margin: 11px 0 12px; }
+    .brand-logo { width: 68px; height: 68px; border-radius: 18px; flex: 0 0 68px; object-fit: contain; box-shadow: 0 8px 24px rgba(0,0,0,.28); }
+    h1 { font-size: clamp(29px, 7.5vw, 40px); line-height: 1.06; margin: 0; letter-spacing: -.035em; }
+    .intro { margin: 0 0 31px; color: #aabbd3; font-size: 15px; line-height: 1.5; }
+    .currency { border: 1px solid #35465d; background: #15243a; border-radius: 20px; padding: 17px 18px; margin: 0 0 13px; transition: border-color .15s, background .15s; }
+    .currency:focus-within { border-color: #74c7bc; background: #1a2e43; }
+    .currency-head { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: 650; color: #d5e2ef; }
+    .code { color: #9ab4d1; font-size: 12px; letter-spacing: .08em; }
+    .entry { display: flex; gap: 9px; align-items: center; margin-top: 8px; }
+    .symbol { color: #a5bbd3; font-size: 25px; font-weight: 500; }
+    input { min-width: 0; width: 100%; padding: 0; border: 0; outline: none; background: transparent; color: white; font-size: clamp(34px, 9vw, 44px); letter-spacing: -.035em; font-weight: 650; font-variant-numeric: tabular-nums; }
+    input::placeholder { color: #677d97; }
+    .hint { color: #829ab7; font-size: 12px; margin-top: 11px; }
+    .status { margin: 23px 0 0; padding: 15px 0 0; border-top: 1px solid #29394e; font-size: 12px; color: #aabbd3; line-height: 1.65; }
+    .status-line { display: flex; gap: 8px; align-items: center; }
+    .dot { width: 7px; height: 7px; flex: 0 0 7px; background: #7cdaa8; border-radius: 50%; }
+    .dot.warn { background: #ffb766; }
+    .dot.bad { background: #f28d8d; }
+    button { background: none; border: 0; padding: 0; color: #86d9ce; font: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+    button:focus-visible { outline: 2px solid #86d9ce; outline-offset: 4px; }
+    #detail { color: #8199b6; margin-top: 7px; }
+    .foot { font-size: 11px; color: #7187a2; line-height: 1.6; margin-top: 25px; }
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Travel money · Czech Republic</div>
+  <div class="brand">
+    <img class="brand-logo" src="/icons/icon-192x192.png" srcset="/icons/icon-192x192.png 192w, /icons/icon-512x512.png 512w" sizes="68px" width="68" height="68" alt="Crowned Czech lion holding paper currency" />
+    <h1>Czech Currency Converter</h1>
+  </div>
+  <p class="intro">Enter any amount. The other two currencies update instantly.</p>
+
+  <section class="currency">
+    <label class="currency-head" for="czk"><span>🇨🇿 Czech koruna</span><span class="code">CZK</span></label>
+    <div class="entry"><span class="symbol">Kč</span><input id="czk" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount in Czech koruna" /></div>
+  </section>
+  <section class="currency">
+    <label class="currency-head" for="usd"><span>🇺🇸 US dollar</span><span class="code">USD</span></label>
+    <div class="entry"><span class="symbol">$</span><input id="usd" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount in US dollars" /></div>
+  </section>
+  <section class="currency">
+    <label class="currency-head" for="eur"><span>🇪🇺 Euro</span><span class="code">EUR</span></label>
+    <div class="entry"><span class="symbol">€</span><input id="eur" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Amount in euros" /></div>
+  </section>
+
+  <div class="status" aria-live="polite">
+    <div class="status-line"><span id="dot" class="dot warn"></span><span id="status">Loading current rates…</span></div>
+    <div id="detail">Rates automatically refresh every 15 minutes.</div>
+    <div style="margin-top:9px"><button id="refresh" type="button">Refresh rates</button></div>
+  </div>
+  <p class="foot">Estimates using published exchange rates. Your bank, card or exchange office may charge a different rate or fees. No conversion amount is sent to the rate provider.</p>
+</main>
+<script>
+(() => {
+  'use strict';
+  const fields = Object.fromEntries(['CZK','USD','EUR'].map(k => [k, document.getElementById(k.toLowerCase())]));
+  const status = document.getElementById('status'), detail = document.getElementById('detail'), dot = document.getElementById('dot');
+  const refresh = document.getElementById('refresh');
+  let rates = null;
+  let rateInfo = null;
+  let active = 'CZK';
+  const CACHE_KEY = 'czech-currency-converter-rates-v1';
+  const fmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const plain = v => String(v).replace(/,/g, '').replace(/\s/g, '').trim();
+  const validNumber = v => /^\d*(?:\.\d*)?$/.test(v) && v !== '' && v !== '.';
+
+  function recalc() {
+    const raw = plain(fields[active].value);
+    if (!validNumber(raw)) {
+      for (const code of Object.keys(fields)) if (code !== active) fields[code].value = '';
+      return;
+    }
+    if (!rates) return;
+    const amount = Number(raw);
+    const inUSD = amount / rates[active];
+    for (const code of Object.keys(fields)) {
+      if (code !== active) fields[code].value = Number.isFinite(inUSD * rates[code]) ? fmt.format(inUSD * rates[code]) : '';
+    }
+  }
+  for (const [code, element] of Object.entries(fields)) {
+    element.addEventListener('input', () => { active = code; recalc(); });
+    element.addEventListener('focus', () => { active = code; });
+  }
+
+  function validRates(value) {
+    return value && ['USD', 'CZK', 'EUR'].every(code => Number.isFinite(value[code]) && value[code] > 0);
+  }
+
+  function formatDateTime(value) {
+    const date = value ? new Date(value) : null;
+    return date && !isNaN(date) ? date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'not provided';
+  }
+
+  function showRateInfo(prefix = 'Rates loaded') {
+    const rateTime = rateInfo?.rateTimestamp ? new Date(rateInfo.rateTimestamp) : null;
+    const age = rateTime && !isNaN(rateTime) ? Date.now() - rateTime.getTime() : null;
+    const stale = age !== null && age > 4 * 86400000;
+    dot.className = 'dot' + (stale ? ' warn' : '');
+    status.textContent = stale ? `${prefix}, but they may be outdated` : prefix;
+    detail.textContent = `Source: ${rateInfo?.source || 'unknown'}. Rate timestamp: ${formatDateTime(rateInfo?.rateTimestamp)}. Last successful fetch: ${formatDateTime(rateInfo?.fetchedAt)}.`;
+  }
+
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+    if (validRates(cached?.rates)) {
+      rates = cached.rates;
+      rateInfo = cached;
+      showRateInfo('Cached rates loaded');
+    }
+  } catch (_) { /* Ignore unavailable or invalid local storage. */ }
+
+  async function loadRates() {
+    refresh.disabled = true;
+    status.textContent = rates ? 'Checking for newer rates…' : 'Loading current rates…';
+    try {
+      const resp = await fetch('/api/rates', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('Could not load rates');
+      const data = await resp.json();
+      const r = data?.rates;
+      if (!validRates(r)) throw new Error('Invalid rates');
+      rates = r;
+      rateInfo = { rates, source: data.source, rateTimestamp: data.rateTimestamp, fetchedAt: data.fetchedAt || new Date().toISOString() };
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(rateInfo)); } catch (_) { /* Conversion still works without persistence. */ }
+      showRateInfo();
+      recalc();
+    } catch (_) {
+      dot.className = 'dot ' + (rates ? 'warn' : 'bad');
+      status.textContent = rates ? 'Refresh failed; using previously loaded rates' : 'Exchange rates unavailable';
+      detail.textContent = rates ? 'These rates may be out of date. Check again when you have a connection.' : 'Connect to the internet and tap Refresh rates.';
+    } finally { refresh.disabled = false; }
+  }
+  refresh.addEventListener('click', loadRates);
+  loadRates();
+  setInterval(loadRates, 15 * 60 * 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadRates(); });
+})();
+</script>
+</body>
+</html>
