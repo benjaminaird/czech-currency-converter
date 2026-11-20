@@ -14,7 +14,7 @@ For a CLI deployment, run `npx vercel --prod` in this directory (requires Vercel
 ## Behavior
 
 - Type in any of the 3 fields and the other 2 update instantly.
-- Rate lookup occurs when opened, when connectivity returns, when the app becomes visible, every 15 minutes while active, or on Refresh.
+- Rate lookup occurs when opened, when connectivity returns, when the app becomes visible, every 15 minutes while active, or on Refresh. Manual refresh bypasses the scheduled cache URL and shows checking plus completion/failure feedback.
 - Main provider: https://www.exchangerate-api.com/docs/free (open, no-key endpoint).
 - Fallback: https://frankfurter.dev/ (reference rate updates).
 - Vercel edge cache is configured for 15 minutes. The provider's publication timestamp and the last successful fetch are shown separately; a publication timestamp older than 24 hours triggers a warning.

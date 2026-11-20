@@ -14,7 +14,7 @@ function makeStorage(initial) {
   };
 }
 
-async function runScenario({ online, cached, response, reject = false }) {
+async function runScenario({ online, cached, response, reject = false, manual = false }) {
   const ids = ['czk', 'usd', 'eur', 'status', 'detail', 'dot', 'refresh', 'offline-readiness'];
   const elements = Object.fromEntries(ids.map(id => [id, {
     id,
@@ -27,6 +27,7 @@ async function runScenario({ online, cached, response, reject = false }) {
   }]));
   const storage = makeStorage(cached ? { [cacheKey]: JSON.stringify(cached) } : {});
   let fetchCalls = 0;
+  const requestedUrls = [];
   const context = {
     console,
     localStorage: storage,
@@ -37,8 +38,9 @@ async function runScenario({ online, cached, response, reject = false }) {
       addEventListener() {}
     },
     window: { addEventListener() {} },
-    fetch: async () => {
+    fetch: async url => {
       fetchCalls += 1;
+      requestedUrls.push(url);
       if (reject) throw new Error('Request failed');
       return { ok: true, json: async () => response };
     },
@@ -52,7 +54,11 @@ async function runScenario({ online, cached, response, reject = false }) {
   vm.runInContext(source, context);
   await new Promise(resolve => setImmediate(resolve));
   await new Promise(resolve => setImmediate(resolve));
-  return { elements, storage: storage.snapshot(), fetchCalls };
+  if (manual) {
+    await elements.refresh.listeners.click();
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  return { elements, storage: storage.snapshot(), fetchCalls, requestedUrls };
 }
 
 function check(condition, message) {
@@ -72,6 +78,16 @@ function check(condition, message) {
   check(online.elements.status.textContent === 'Updated', 'Online data should show Updated');
   check(online.fetchCalls === 1, 'Online launch should fetch rates');
   check(JSON.parse(online.storage[cacheKey]).source === valid.source, 'Valid online rates should be persisted');
+
+  const manual = await runScenario({ online: true, cached: valid, response: valid, manual: true });
+  check(manual.fetchCalls === 2, 'Manual refresh should make a new request');
+  check(manual.requestedUrls[1].startsWith('/api/rates?manual='), 'Manual refresh should bypass the scheduled cache URL');
+  check(manual.elements.detail.textContent.startsWith('Manual refresh completed.'), 'Manual refresh should show completion feedback');
+  check(manual.elements.refresh.textContent === 'Refresh rates', 'Manual refresh button should return to its normal label');
+
+  const manualFailure = await runScenario({ online: true, cached: valid, reject: true, manual: true });
+  check(manualFailure.elements.detail.textContent.startsWith('Manual refresh failed.'), 'Manual refresh failure should be visible');
+  check(manualFailure.elements.refresh.textContent === 'Refresh rates', 'Failed manual refresh should restore the button label');
 
   const offline = await runScenario({ online: false, cached: valid, reject: true });
   check(offline.elements.status.textContent === 'Offline — using saved rates', 'Offline launch should use saved rates');

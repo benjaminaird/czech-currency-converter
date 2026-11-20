@@ -17,6 +17,8 @@
   let active = 'CZK';
   let offlineAssetsReady = false;
   let lastRefreshFailed = false;
+  let refreshInFlight = false;
+  let manualFeedback = '';
 
   const plain = value => String(value).replace(/,/g, '').replace(/\s/g, '').trim();
   const validNumber = value => /^\d*(?:\.\d*)?$/.test(value) && value !== '' && value !== '.';
@@ -81,7 +83,7 @@
 
     const connectionNote = !navigator.onLine ? ' Offline — using saved rates.' : '';
     const failureNote = lastRefreshFailed && navigator.onLine ? ' The latest refresh failed; saved rates remain active.' : '';
-    detail.textContent = `Saved rates: ${formatDateTime(rateInfo.rateTimestamp)}. Source: ${rateInfo.source}. Last successful fetch: ${formatDateTime(rateInfo.fetchedAt)}.${connectionNote}${failureNote}`;
+    detail.textContent = `${manualFeedback}Saved rates: ${formatDateTime(rateInfo.rateTimestamp)}. Source: ${rateInfo.source}. Last successful fetch: ${formatDateTime(rateInfo.fetchedAt)}.${connectionNote}${failureNote}`;
     updateOfflineReadiness();
   }
 
@@ -112,17 +114,28 @@
     }
   } catch (_) { /* Invalid or unavailable local storage is treated as an uninitialized first launch. */ }
 
-  async function loadRates() {
+  async function loadRates({ manual = false } = {}) {
+    if (refreshInFlight) return;
     if (!navigator.onLine) {
       lastRefreshFailed = true;
+      if (manual) manualFeedback = 'Manual refresh could not run while offline. ';
       renderRateStatus();
       return;
     }
 
+    refreshInFlight = true;
     refresh.disabled = true;
-    if (!rates) renderRateStatus();
+    if (manual) {
+      manualFeedback = '';
+      dot.className = 'dot warn';
+      status.textContent = 'Checking for newer rates…';
+      refresh.textContent = 'Refreshing…';
+    } else if (!rates) {
+      renderRateStatus();
+    }
     try {
-      const response = await fetch('/api/rates', { cache: 'no-store' });
+      const endpoint = manual ? `/api/rates?manual=${Date.now()}` : '/api/rates';
+      const response = await fetch(endpoint, { cache: 'no-store' });
       if (!response.ok) throw new Error('Could not load rates');
       const data = await response.json();
       const candidate = {
@@ -136,12 +149,16 @@
       rates = candidate.rates;
       rateInfo = candidate;
       lastRefreshFailed = false;
+      if (manual) manualFeedback = 'Manual refresh completed. ';
       try { localStorage.setItem(CACHE_KEY, JSON.stringify(candidate)); } catch (_) { /* Current-session conversion still works. */ }
       recalc();
     } catch (_) {
       lastRefreshFailed = true;
+      if (manual) manualFeedback = 'Manual refresh failed. ';
     } finally {
+      refreshInFlight = false;
       refresh.disabled = false;
+      refresh.textContent = 'Refresh rates';
       renderRateStatus();
     }
   }
@@ -175,7 +192,7 @@
     updateOfflineReadiness();
   }
 
-  refresh.addEventListener('click', loadRates);
+  refresh.addEventListener('click', () => loadRates({ manual: true }));
   window.addEventListener('online', loadRates);
   window.addEventListener('offline', renderRateStatus);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) loadRates(); });

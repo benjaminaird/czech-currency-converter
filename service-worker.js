@@ -1,4 +1,4 @@
-const CACHE_NAME = 'czech-currency-converter-v2';
+const CACHE_NAME = 'czech-currency-converter-v3';
 const APP_SHELL = [
   '/',
   '/index.html',
