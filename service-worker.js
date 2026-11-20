@@ -1,8 +1,8 @@
-const CACHE_NAME = 'czech-currency-converter-v3';
+const CACHE_NAME = 'czech-currency-converter-v4';
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/app.js',
+  '/app.js?v=4',
   '/manifest.webmanifest',
   '/assets/czech-lion-logo.png',
   '/icons/apple-touch-icon.png',
