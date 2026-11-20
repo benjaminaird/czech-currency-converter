@@ -14,6 +14,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="48x48" href="/icons/favicon-48x48.png" />
   <title>Czech Currency Converter</title>
+  <script src="/app.js" defer></script>
   <style>
     :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-synthesis: none; }
     * { box-sizing: border-box; }
@@ -41,6 +42,9 @@
     button { background: none; border: 0; padding: 0; color: #86d9ce; font: inherit; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
     button:focus-visible { outline: 2px solid #86d9ce; outline-offset: 4px; }
     #detail { color: #8199b6; margin-top: 7px; }
+    #offline-readiness { color: #86d9ce; margin-top: 7px; }
+    #offline-readiness.pending { color: #8199b6; }
+    #offline-readiness.warn { color: #ffb766; }
     .foot { font-size: 11px; color: #7187a2; line-height: 1.6; margin-top: 25px; }
   </style>
 </head>
@@ -69,94 +73,10 @@
   <div class="status" aria-live="polite">
     <div class="status-line"><span id="dot" class="dot warn"></span><span id="status">Loading current rates…</span></div>
     <div id="detail">Rates automatically refresh every 15 minutes.</div>
+    <div id="offline-readiness" class="pending">Preparing offline access…</div>
     <div style="margin-top:9px"><button id="refresh" type="button">Refresh rates</button></div>
   </div>
   <p class="foot">Estimates using published exchange rates. Your bank, card or exchange office may charge a different rate or fees. No conversion amount is sent to the rate provider.</p>
 </main>
-<script>
-(() => {
-  'use strict';
-  const fields = Object.fromEntries(['CZK','USD','EUR'].map(k => [k, document.getElementById(k.toLowerCase())]));
-  const status = document.getElementById('status'), detail = document.getElementById('detail'), dot = document.getElementById('dot');
-  const refresh = document.getElementById('refresh');
-  let rates = null;
-  let rateInfo = null;
-  let active = 'CZK';
-  const CACHE_KEY = 'czech-currency-converter-rates-v1';
-  const fmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const plain = v => String(v).replace(/,/g, '').replace(/\s/g, '').trim();
-  const validNumber = v => /^\d*(?:\.\d*)?$/.test(v) && v !== '' && v !== '.';
-
-  function recalc() {
-    const raw = plain(fields[active].value);
-    if (!validNumber(raw)) {
-      for (const code of Object.keys(fields)) if (code !== active) fields[code].value = '';
-      return;
-    }
-    if (!rates) return;
-    const amount = Number(raw);
-    const inUSD = amount / rates[active];
-    for (const code of Object.keys(fields)) {
-      if (code !== active) fields[code].value = Number.isFinite(inUSD * rates[code]) ? fmt.format(inUSD * rates[code]) : '';
-    }
-  }
-  for (const [code, element] of Object.entries(fields)) {
-    element.addEventListener('input', () => { active = code; recalc(); });
-    element.addEventListener('focus', () => { active = code; });
-  }
-
-  function validRates(value) {
-    return value && ['USD', 'CZK', 'EUR'].every(code => Number.isFinite(value[code]) && value[code] > 0);
-  }
-
-  function formatDateTime(value) {
-    const date = value ? new Date(value) : null;
-    return date && !isNaN(date) ? date.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'not provided';
-  }
-
-  function showRateInfo(prefix = 'Rates loaded') {
-    const rateTime = rateInfo?.rateTimestamp ? new Date(rateInfo.rateTimestamp) : null;
-    const age = rateTime && !isNaN(rateTime) ? Date.now() - rateTime.getTime() : null;
-    const stale = age !== null && age > 4 * 86400000;
-    dot.className = 'dot' + (stale ? ' warn' : '');
-    status.textContent = stale ? `${prefix}, but they may be outdated` : prefix;
-    detail.textContent = `Source: ${rateInfo?.source || 'unknown'}. Rate timestamp: ${formatDateTime(rateInfo?.rateTimestamp)}. Last successful fetch: ${formatDateTime(rateInfo?.fetchedAt)}.`;
-  }
-
-  try {
-    const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
-    if (validRates(cached?.rates)) {
-      rates = cached.rates;
-      rateInfo = cached;
-      showRateInfo('Cached rates loaded');
-    }
-  } catch (_) { /* Ignore unavailable or invalid local storage. */ }
-
-  async function loadRates() {
-    refresh.disabled = true;
-    status.textContent = rates ? 'Checking for newer rates…' : 'Loading current rates…';
-    try {
-      const resp = await fetch('/api/rates', { cache: 'no-store' });
-      if (!resp.ok) throw new Error('Could not load rates');
-      const data = await resp.json();
-      const r = data?.rates;
-      if (!validRates(r)) throw new Error('Invalid rates');
-      rates = r;
-      rateInfo = { rates, source: data.source, rateTimestamp: data.rateTimestamp, fetchedAt: data.fetchedAt || new Date().toISOString() };
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(rateInfo)); } catch (_) { /* Conversion still works without persistence. */ }
-      showRateInfo();
-      recalc();
-    } catch (_) {
-      dot.className = 'dot ' + (rates ? 'warn' : 'bad');
-      status.textContent = rates ? 'Refresh failed; using previously loaded rates' : 'Exchange rates unavailable';
-      detail.textContent = rates ? 'These rates may be out of date. Check again when you have a connection.' : 'Connect to the internet and tap Refresh rates.';
-    } finally { refresh.disabled = false; }
-  }
-  refresh.addEventListener('click', loadRates);
-  loadRates();
-  setInterval(loadRates, 15 * 60 * 1000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) loadRates(); });
-})();
-</script>
 </body>
 </html>

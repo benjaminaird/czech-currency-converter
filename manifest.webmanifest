@@ -2,6 +2,7 @@
   "name": "Czech Currency Converter",
   "short_name": "Czech Currency Converter",
   "description": "Quick conversion between Czech koruna, US dollars and euros.",
+  "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
